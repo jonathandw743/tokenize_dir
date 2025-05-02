@@ -1,0 +1,10 @@
+[package]
+name = "tokenize_dir"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+tokenize_dir_macros = { path = "tokenize_dir_macros" }
+
+[workspace]
+members = ["tokenize_dir_macros"]
