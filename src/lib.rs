@@ -1,15 +1,20 @@
 pub use tokenize_dir_macros::tokenize_dir;
 
+mod to_iter;
+
+pub use to_iter::ToIter;
+
 pub fn file_indices<'a>(
-    mut tokens_associated_files: impl Iterator<Item = &'a [usize]>,
+    mut tokens_associated_files: impl Iterator<Item = impl AsRef<[usize]>>,
 ) -> Vec<usize> {
-    let Some(possible_files) =
-        tokens_associated_files.find(|token_associated_files| !token_associated_files.is_empty())
+    let Some(possible_files) = tokens_associated_files
+        .find(|token_associated_files| !token_associated_files.as_ref().is_empty())
     else {
         return Vec::new();
     };
-    let mut possible_files = Vec::from(possible_files);
+    let mut possible_files = Vec::from(possible_files.as_ref());
     while let Some(token_associated_files) = tokens_associated_files.next() {
+        let token_associated_files = token_associated_files.as_ref();
         if possible_files.len() == 1 {
             break;
         }
@@ -33,7 +38,9 @@ pub fn file_indices<'a>(
                 }
                 b /= 2;
             }
-        } else /* if possible_files.first().unwrap() < token_associated_files.first().unwrap() */ {
+        } else
+        /* if possible_files.first().unwrap() < token_associated_files.first().unwrap() */
+        {
             let x = token_associated_files[0];
             let mut b = possible_files.len() / 2;
             while b > 0 {
@@ -73,3 +80,5 @@ pub fn file_indices<'a>(
 //     let x = d.iter().flat_map(|x| x.iter());
 //     dbg!(x.collect::<Vec<_>>());
 // }
+
+// tokenize_dir!("/home/jonathan/git/rust/kenney_input_prompts/kenney_input-prompts_1.4/"; "_");
