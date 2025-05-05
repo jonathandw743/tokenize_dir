@@ -4,7 +4,7 @@ use quote::{format_ident, quote};
 use regex::Regex;
 use std::{
     collections::{HashMap, HashSet},
-    fs,
+    default, fs,
     path::{Path, PathBuf},
     str::FromStr,
 };
@@ -247,16 +247,47 @@ pub fn tokenize_dir(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 //     }
 // }
 
+#[derive(Debug, Default, Clone)]
+struct File {
+    // should be unique
+    path: PathBuf,
+    stem_word_tokens: HashSet<(String, usize)>,
+    ext_tokens: HashSet<(String, usize)>,
+    num_files_in_dir: usize,
+}
+
+impl File {
+    fn negative_log_likelihood(
+        &self,
+        all_stem_word_tokens: &HashMap<(String, usize), HashSet<PathBuf>>,
+        all_ext_tokens: &HashMap<(String, usize), HashSet<PathBuf>>,
+        num_files: usize,
+    ) -> usize {
+        let mut l = 0;
+        for stem_word_token in &self.stem_word_tokens {
+            l += num_files;
+            l -= all_stem_word_tokens[stem_word_token].len();
+        }
+        for ext_token in &self.ext_tokens {
+            l += num_files;
+            l -= all_ext_tokens[ext_token].len();
+        }
+        l += num_files;
+        l -= self.num_files_in_dir;
+        l
+    }
+}
+
 #[derive(Debug)]
-struct Foo {
-    files: Vec<PathBuf>,
-    dir: String,
-    children: Vec<Foo>,
+struct Directory {
+    files: Vec<File>,
+    name: String,
+    sub_dirs: Vec<Directory>,
     stem_word_tokens: HashMap<(String, usize), HashSet<PathBuf>>,
     ext_tokens: HashMap<(String, usize), HashSet<PathBuf>>,
 }
 
-fn tokenize_dir_inner_inner<P: AsRef<Path>>(path: P, delimiters: &Regex) -> Result<Foo> {
+fn tokenize_dir_inner_inner<P: AsRef<Path>>(path: P, delimiters: &Regex) -> Result<Directory> {
     let mut files = Vec::new();
     let mut children = Vec::new();
     let dir = path
@@ -266,37 +297,47 @@ fn tokenize_dir_inner_inner<P: AsRef<Path>>(path: P, delimiters: &Regex) -> Resu
         .to_str()
         .ok_or(anyhow!("to_str failed"))?
         .to_owned();
+    let mut num_files_in_dir = 0;
     for dir_entry in fs::read_dir(path).unwrap() {
         let path = dir_entry?.path();
         if path.is_file() {
-            files.push(path);
+            files.push(File {
+                path,
+                ..Default::default()
+            });
+            num_files_in_dir += 1;
         } else if path.is_dir() {
             let foo = tokenize_dir_inner_inner(path, delimiters)?;
             children.push(foo);
         }
     }
+    for file in &mut files {
+        file.num_files_in_dir = num_files_in_dir;
+    }
     let mut file_names = Vec::new();
     for file in &files {
         file_names.push(
-            file.file_name()
+            file.path
+                .file_name()
                 .ok_or(anyhow!("file_name failed"))?
                 .to_str()
-                .ok_or(anyhow!("to_str failed"))?,
+                .ok_or(anyhow!("to_str failed"))?
+                .to_owned(),
         );
     }
     let mut stem_word_tokens: HashMap<(String, usize), HashSet<PathBuf>> = HashMap::new();
     let mut ext_tokens: HashMap<(String, usize), HashSet<PathBuf>> = HashMap::new();
-    for (file, file_name) in files.iter().zip(file_names.into_iter()) {
-        let mut stem = file_name;
+    for (file, file_name) in files.iter_mut().zip(file_names.into_iter()) {
+        let mut stem = file_name.clone();
         let mut ext_counts = HashMap::new();
         if let Some((new_stem, exts)) = file_name.split_once(".") {
-            stem = new_stem;
+            stem = new_stem.to_owned();
             for etx in exts.split(".") {
                 *ext_counts.entry(etx.to_owned()).or_insert(0usize) += 1;
             }
         }
         let mut stem_word_counts = HashMap::new();
-        for word in delimiters.split(stem).filter(|part| !part.is_empty()) {
+        for word in delimiters.split(&stem).filter(|part| !part.is_empty()) {
             *stem_word_counts.entry(word.to_owned()).or_insert(0usize) += 1;
         }
         for (word, &count) in &stem_word_counts {
@@ -304,7 +345,8 @@ fn tokenize_dir_inner_inner<P: AsRef<Path>>(path: P, delimiters: &Regex) -> Resu
                 stem_word_tokens
                     .entry((word.to_owned(), version))
                     .or_default()
-                    .insert(file.clone());
+                    .insert(file.path.clone());
+                file.stem_word_tokens.insert((word.to_owned(), version));
             }
         }
         for (word, &count) in &ext_counts {
@@ -312,7 +354,8 @@ fn tokenize_dir_inner_inner<P: AsRef<Path>>(path: P, delimiters: &Regex) -> Resu
                 ext_tokens
                     .entry((word.to_owned(), version))
                     .or_default()
-                    .insert(file.clone());
+                    .insert(file.path.clone());
+                file.ext_tokens.insert((word.to_owned(), version));
             }
         }
     }
@@ -386,10 +429,10 @@ fn tokenize_dir_inner_inner<P: AsRef<Path>>(path: P, delimiters: &Regex) -> Resu
             files.push(file.clone());
         }
     }
-    Ok(Foo {
+    Ok(Directory {
         files,
-        dir,
-        children,
+        name: dir,
+        sub_dirs: children,
         stem_word_tokens,
         ext_tokens,
     })
@@ -434,9 +477,9 @@ fn create_const_arrays(
     })
 }
 
-fn create_ts(foo: &Foo, file_to_index: &HashMap<PathBuf, usize>) -> proc_macro2::TokenStream {
+fn create_ts(foo: &Directory, file_to_index: &HashMap<PathBuf, usize>) -> proc_macro2::TokenStream {
     let dir = foo
-        .dir
+        .name
         .chars()
         .map(|c| if c.is_alphanumeric() { c } else { '_' })
         .collect::<String>();
@@ -444,7 +487,7 @@ fn create_ts(foo: &Foo, file_to_index: &HashMap<PathBuf, usize>) -> proc_macro2:
     let mut file_indices = foo
         .files
         .iter()
-        .map(|file| file_to_index[file])
+        .map(|file| file_to_index[&file.path])
         .collect::<Vec<_>>();
     file_indices.sort();
     let file_indices = file_indices
@@ -453,7 +496,7 @@ fn create_ts(foo: &Foo, file_to_index: &HashMap<PathBuf, usize>) -> proc_macro2:
     let stem_word_tokens = create_const_arrays(&foo.stem_word_tokens, file_to_index);
     let ext_tokens = create_const_arrays(&foo.ext_tokens, file_to_index);
     let children = foo
-        .children
+        .sub_dirs
         .iter()
         .map(|child| create_ts(child, file_to_index));
     quote! {
@@ -475,27 +518,36 @@ fn tokenize_dir_inner<P: AsRef<Path>>(
     delimiters: &Regex,
 ) -> Result<proc_macro2::TokenStream> {
     let mut files = Vec::new();
-    let mut foos = Vec::new();
-    for dir_path in dir_paths {
-        let foo = tokenize_dir_inner_inner(dir_path, delimiters)?;
-        for file in &foo.files {
-            files.push(file.clone());
+    let mut directories = Vec::new();
+    for (i, dir_path) in dir_paths.iter().enumerate() {
+        let directory = tokenize_dir_inner_inner(dir_path, delimiters)?;
+        for file in &directory.files {
+            files.push((file.clone(), i));
         }
-        foos.push(foo);
+        directories.push(directory);
     }
-    files.sort();
+    let num_files = files.len();
+    files.sort_by_key(|(file, dir_index)| {
+        file.negative_log_likelihood(
+            &directories[*dir_index].stem_word_tokens,
+            &directories[*dir_index].ext_tokens,
+            num_files,
+        )
+    });
     let mut files_to_index = HashMap::new();
-    for (index, file) in files.iter().enumerate() {
-        files_to_index.insert(file.clone(), index);
+    for (index, (file, _dir_index)) in files.iter().enumerate() {
+        files_to_index.insert(file.path.clone(), index);
     }
     let mut file_lits = Vec::new();
-    for file in files {
+    for (file, _dir_index) in files {
         file_lits.push(LitStr::new(
-            file.to_str().ok_or(anyhow!(""))?,
+            file.path.to_str().ok_or(anyhow!(""))?,
             Span::call_site(),
         ));
     }
-    let foos = foos.iter().map(|foo| create_ts(foo, &files_to_index));
+    let foos = directories
+        .iter()
+        .map(|foo| create_ts(foo, &files_to_index));
     Ok(quote! {
         pub const FILE_PATHS: &[&str] = &[ #(#file_lits,)* ];
         #(#foos)*
