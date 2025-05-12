@@ -526,6 +526,7 @@ fn tokenize_dir_inner<P: AsRef<Path>>(
         }
         directories.push(directory);
     }
+    files.sort_by(|(file1, _), (file2, _)| file1.path.cmp(&file2.path));
     let num_files = files.len();
     files.sort_by_key(|(file, dir_index)| {
         file.negative_log_likelihood(
