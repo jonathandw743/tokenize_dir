@@ -3,6 +3,7 @@ name = "tokenize_dir_macros"
 version = "0.1.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
+description = "Macros for tokenize_dir"
 
 [lib]
 proc-macro = true
