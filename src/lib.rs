@@ -1,3 +1,7 @@
+#![no_std]
+extern crate alloc;
+use alloc::vec::Vec;
+
 pub use tokenize_dir_macros::tokenize_dir;
 
 mod to_constraints;

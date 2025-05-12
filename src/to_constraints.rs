@@ -1,4 +1,4 @@
-use std::iter::{empty, once};
+use core::iter::{once, empty};
 
 pub trait ToConstraints {
     fn to_constraints(&self) -> impl Iterator<Item = &[usize]>;
