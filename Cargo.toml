@@ -6,7 +6,7 @@ license = "MIT OR Apache-2.0"
 description = "Tokenize file names in directories to access files in a composable way."
 
 [dependencies]
-tokenize_dir_macros = { path = "tokenize_dir_macros" }
+tokenize_dir_macros = "0.1.0"
 
 [workspace]
 members = ["tokenize_dir_macros"]

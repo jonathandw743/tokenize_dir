@@ -94,12 +94,26 @@ dependencies = [
 name = "tokenize_dir"
 version = "0.1.0"
 dependencies = [
- "tokenize_dir_macros",
+ "tokenize_dir_macros 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "tokenize_dir_macros"
 version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "proc-macro2",
+ "quote",
+ "regex",
+ "syn",
+ "walkdir",
+]
+
+[[package]]
+name = "tokenize_dir_macros"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "621f4336f61445167241cc71286e7250da1b4dc53ddb1d253dc1aa87907b0367"
 dependencies = [
  "anyhow",
  "proc-macro2",
