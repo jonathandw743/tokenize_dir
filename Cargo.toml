@@ -2,6 +2,7 @@
 name = "tokenize_dir"
 version = "0.1.0"
 edition = "2024"
+license = "MIT OR Apache-2.0"
 
 [dependencies]
 tokenize_dir_macros = { path = "tokenize_dir_macros" }
