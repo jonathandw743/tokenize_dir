@@ -52,7 +52,7 @@ pub fn solve_constraints_nonstrict<'a>(
                 b /= 2;
             }
         } else
-        /* if possible_files.first().unwrap() < token_associated_files.first().unwrap() */
+        // if possible_files.first().unwrap() < token_associated_files.first().unwrap()
         {
             let x = constraint[0];
             let mut b = partial_solution.len() / 2;
@@ -63,8 +63,8 @@ pub fn solve_constraints_nonstrict<'a>(
                 b /= 2;
             }
         }
-        // let mut new_possible_files = Vec::with_capacity(possible_files.len());
-        let mut next_partial_solution = Vec::new();
+        let mut next_partial_solution = Vec::with_capacity(partial_solution.len());
+        // let mut next_partial_solution = Vec::new();
         while i < partial_solution.len() && j < constraint.len() {
             if partial_solution[i] == constraint[j] {
                 next_partial_solution.push(partial_solution[i]);
@@ -82,20 +82,6 @@ pub fn solve_constraints_nonstrict<'a>(
     }
     Some(partial_solution)
 }
-
-// #[test]
-// fn test() {
-//     let a: &[i32] = &[3, 4];
-//     let b: &[i32] = &[6, 7];
-//     let c: &[&[i32]] = &[a, b];
-//     let d: &[&[&[i32]]] = &[c, c];
-
-//     let x = d.iter().flat_map(|x| x.iter());
-//     dbg!(x.collect::<Vec<_>>());
-// }
-
-// tokenize_dir!("/home/jonathan/git/rust/kenney_input_prompts/kenney_input-prompts_1.4/"; "_");
-
 
 /// returns None for no value
 /// 
@@ -144,7 +130,7 @@ pub fn first_value_nonstrict<'a>(
                 b /= 2;
             }
         } else
-        /* if possible_files.first().unwrap() < token_associated_files.first().unwrap() */
+        // if possible_files.first().unwrap() < token_associated_files.first().unwrap()
         {
             let x = constraint[0];
             let mut b = partial_solution.len() / 2;
@@ -155,8 +141,8 @@ pub fn first_value_nonstrict<'a>(
                 b /= 2;
             }
         }
-        // let mut new_possible_files = Vec::with_capacity(possible_files.len());
-        let mut next_partial_solution = Vec::new();
+        let mut next_partial_solution = Vec::with_capacity(partial_solution.len());
+        // let mut next_partial_solution = Vec::new();
         while i < partial_solution.len() && j < constraint.len() {
             if partial_solution[i] == constraint[j] {
                 next_partial_solution.push(partial_solution[i]);
@@ -214,8 +200,8 @@ pub fn solve_constraints_strict<'a>(
                 b /= 2;
             }
         }
-        // let mut new_possible_files = Vec::with_capacity(possible_files.len());
-        let mut next_partial_solution = Vec::new();
+        let mut next_partial_solution = Vec::with_capacity(partial_solution.len());
+        // let mut next_partial_solution = Vec::new();
         while i < partial_solution.len() && j < constraint.len() {
             if partial_solution[i] == constraint[j] {
                 next_partial_solution.push(partial_solution[i]);
@@ -270,8 +256,8 @@ pub fn first_value_strict<'a>(
                 b /= 2;
             }
         }
-        // let mut new_possible_files = Vec::with_capacity(possible_files.len());
-        let mut next_partial_solution = Vec::new();
+        let mut next_partial_solution = Vec::with_capacity(partial_solution.len());
+        // let mut next_partial_solution = Vec::new();
         while i < partial_solution.len() && j < constraint.len() {
             if partial_solution[i] == constraint[j] {
                 next_partial_solution.push(partial_solution[i]);

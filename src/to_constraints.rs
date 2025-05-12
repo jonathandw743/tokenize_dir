@@ -1,45 +1,15 @@
 use std::iter::{empty, once};
 
-// mod sealed {
-//     pub trait Sealed {
-
-//     }
-// }
-
 pub trait ToConstraints {
     fn to_constraints(&self) -> impl Iterator<Item = &[usize]>;
 }
 
-// impl sealed::Sealed for &[usize] {}
 impl ToConstraints for &[usize] {
     fn to_constraints(&self) -> impl Iterator<Item = &[usize]> {
         once(*self)
     }
 }
 
-// impl sealed::Sealed for &[&[usize]] {}
-// impl ToConstraints for &[&[usize]] {
-//     fn to_constraints(&self) -> impl Iterator<Item = &[usize]> {
-//         // this is fine because the &&[usize] would get dereferenced anyway eventually, its just we do it during .next()
-//         self.iter().copied()
-//     }
-// }
-
-// impl<const N: usize> sealed::Sealed for [&[usize]; N] {}
-// impl<const N: usize> ToConstraints for [&[usize]; N] {
-//     fn to_constraints(&self) -> impl Iterator<Item = &[usize]> {
-//         self.iter().copied()
-//     }
-// }
-
-// impl<const N: usize> sealed::Sealed for &[&[usize]; N] {}
-// impl<const N: usize> ToConstraints for &[&[usize]; N] {
-//     fn to_constraints(&self) -> impl Iterator<Item = &[usize]> {
-//         self.iter().copied()
-//     }
-// }
-
-// impl<T: ToConstraints> sealed::Sealed for &[T] {}
 impl<T: ToConstraints> ToConstraints for &[T]
 {
     fn to_constraints(&self) -> impl Iterator<Item = &[usize]> {
@@ -47,8 +17,6 @@ impl<T: ToConstraints> ToConstraints for &[T]
     }
 }
 
-// TODO: do i need this?
-// impl<T: ToConstraints, const N: usize> sealed::Sealed for [T; N] {}
 impl<T: ToConstraints, const N: usize> ToConstraints for [T; N]
 {
     fn to_constraints(&self) -> impl Iterator<Item = &[usize]> {
@@ -56,7 +24,6 @@ impl<T: ToConstraints, const N: usize> ToConstraints for [T; N]
     }
 }
 
-// impl<T: ToConstraints, const N: usize> sealed::Sealed for &[T; N] {}
 impl<T: ToConstraints, const N: usize> ToConstraints for &[T; N]
 {
     fn to_constraints(&self) -> impl Iterator<Item = &[usize]> {
@@ -66,7 +33,6 @@ impl<T: ToConstraints, const N: usize> ToConstraints for &[T; N]
 
 macro_rules! impl_to_contraints {
     ($($t:ident),* ; $($i:tt),*) => {
-        // impl<$($t: ToConstraints),*> sealed::Sealed for ($($t,)*) {}
         impl<$($t: ToConstraints),*> ToConstraints for ($($t,)*) {
             fn to_constraints(&self) -> impl Iterator<Item = &[usize]> {
                 empty()$(.chain(self.$i.to_constraints()))*
